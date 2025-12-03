@@ -1,8 +1,11 @@
 import os
 import sys
+import json
 from decimal import Decimal, getcontext, InvalidOperation
 
 getcontext().prec = 28
+
+HISTORY_FILE = "calc_history.json"
 
 OPERATIONS = {
     1: "+",
@@ -27,6 +30,9 @@ def format_number(num: Decimal):
 
     if num.is_nan():
         return "Ошибка"
+    
+    if num == 0:
+        return "0"
 
     s = "{:f}".format(num)
     
@@ -44,6 +50,24 @@ def get_decimal(prompt_text):
         except (InvalidOperation, ValueError):
             print("Ошибка: Введите корректное число!")
 
+def save_history():
+    try:
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=4)
+    except IOError as e:
+        print(f"Ошибка при сохранении истории: {e}")
+
+def load_history():
+    global history
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    history = data
+        except (IOError, json.JSONDecodeError):
+            history = []
+
 def show_history():
     print("\n--- История вычислений ---")
     if not history:
@@ -55,6 +79,8 @@ def show_history():
 
 def main():
     global last_result, history
+    
+    load_history()
     
     while True:
         clear_screen()
@@ -98,7 +124,8 @@ def main():
         if tip == 6:
             last_result = None
             history = []
-            print("Память очищена.")
+            save_history() # Сохраняем пустой список
+            print("Память и история очищены.")
             input("Нажмите Enter...")
             continue
 
@@ -159,6 +186,8 @@ def main():
             last_result = res
 
         history.append(log_entry)
+        save_history()
+        
         print(f"\nРезультат: {res_str}")
         input("\nНажмите Enter для продолжения...")
 
